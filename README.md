@@ -1,37 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YouTube Viewer
 
-## Getting Started
+YouTubeのURLを入力すると、その動画だけを埋め込みプレーヤーで視聴できるシンプルなWebアプリケーションです。
 
-First, run the development server:
+## 特徴
+
+- 🎥 **シンプルな操作**: YouTube URLを入力するだけ
+- 📱 **レスポンシブデザイン**: モバイルからデスクトップまで対応
+- 🌙 **ダークテーマ**: 目に優しいUIデザイン
+- 🔄 **複数のURL形式に対応**:
+  - `https://www.youtube.com/watch?v=xxxxx`
+  - `https://youtu.be/xxxxx`
+  - `https://www.youtube.com/embed/xxxxx`
+  - `https://www.youtube.com/v/xxxxx`
+
+## 技術スタック
+
+- **フレームワーク**: [Next.js 15](https://nextjs.org) (App Router)
+- **言語**: TypeScript
+- **スタイリング**: Tailwind CSS
+- **UIライブラリ**: React 19
+
+## セットアップ
+
+### 前提条件
+
+- Node.js 18.18以上
+- npm, yarn, pnpm, または bun
+
+### インストール
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/shunsukenoguchi/youtube-viewer.git
+cd youtube-viewer
+
+# 依存関係をインストール
+npm install
+# または
+yarn install
+# または
+pnpm install
+```
+
+### 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
+# または
 yarn dev
-# or
+# または
 pnpm dev
-# or
+# または
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで [http://localhost:3000](http://localhost:3000) を開いてアプリケーションを確認できます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 使い方
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. アプリケーションを開く
+2. 入力フィールドにYouTube URLを貼り付け
+3. 「表示」ボタンをクリック
+4. 動画が埋め込みプレーヤーで表示されます
+5. 別の動画を見る場合は「クリア」ボタンで入力をリセット
 
-## Learn More
+## スクリプト
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# 開発サーバー起動
+npm run dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# プロダクションビルド
+npm run build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# プロダクションサーバー起動
+npm start
 
-## Deploy on Vercel
+# コードチェック
+npm run lint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# コードフォーマット
+npm run format
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# youtube-viewer
+## デプロイ
+
+このアプリは[Vercel](https://vercel.com)でデプロイされています。
+
+[https://youtube-viewer-knhrw398n-shunsukenoguchis-projects.vercel.app](https://youtube-viewer-knhrw398n-shunsukenoguchis-projects.vercel.app)
+
+詳細は[Next.jsデプロイメントドキュメント](https://nextjs.org/docs/app/building-your-application/deploying)を参照してください。
+
+## ライセンス
+
+MIT
