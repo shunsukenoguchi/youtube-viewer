@@ -65,11 +65,23 @@ pnpm install
 # .env.localファイルを作成
 cp .env.example .env.local
 
-# .env.localファイルを編集してAPIキーを設定
-NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key_here
+# .env.localファイルを編集して設定
 ```
 
-**注意**: URL入力機能のみを使用する場合は、APIキーは不要です。
+`.env.local`の設定例：
+```bash
+# YouTube API キー（検索機能を使う場合は必須）
+NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key_here
+
+# Basic認証（オプション）
+# サイト全体にBasic認証をかけたい場合に設定
+BASIC_AUTH_USER=admin
+BASIC_AUTH_PASSWORD=your_secure_password
+```
+
+**注意**: 
+- URL入力機能のみを使用する場合は、APIキーは不要です
+- Basic認証の環境変数を設定しない場合は、認証なしでアクセスできます
 
 ### 開発サーバーの起動
 
@@ -102,6 +114,24 @@ bun dev
 3. 検索結果から見たい動画のサムネイルをクリック
 4. 動画が埋め込みプレーヤーで表示されます
 5. 「← 検索結果に戻る」ボタンで検索結果に戻れます
+
+## セキュリティ
+
+### Basic認証
+
+サイト全体にBasic認証を追加できます。`.env.local`に以下を設定してください：
+
+```bash
+BASIC_AUTH_USER=your_username
+BASIC_AUTH_PASSWORD=your_password
+```
+
+設定後、開発サーバーを再起動すると、すべてのページへのアクセス時にユーザー名とパスワードの入力が求められます。
+
+**注意**: 
+- Basic認証の環境変数が設定されていない場合は、認証なしでアクセスできます
+- 本番環境では強固なパスワードを設定してください
+- Vercelなどのホスティングサービスでも環境変数を設定できます
 
 ## スクリプト
 
