@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -41,9 +42,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-bold text-center mb-8">
-          YouTube Viewer
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold">
+            YouTube Viewer
+          </h1>
+          <Link
+            href="/search"
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            動画検索へ
+          </Link>
+        </div>
 
         <form onSubmit={handleSubmit} className="mb-8">
           <div className="flex flex-col sm:flex-row gap-4">
