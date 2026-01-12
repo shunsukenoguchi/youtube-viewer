@@ -32,12 +32,15 @@ export default function FavoritesPage() {
     useState<FavoriteChannel | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
 
-  const handleChannelClick = async (channel: FavoriteChannel) => {
-    setSelectedChannel(channel);
+  const fetchChannelVideos = async (
+    channelId: string,
+    pageToken?: string | null,
+  ) => {
     setLoading(true);
     setError("");
-    setSelectedVideo(null);
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
@@ -50,8 +53,10 @@ export default function FavoritesPage() {
         return;
       }
 
+      const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channel.channelId}&type=video&order=date&maxResults=20&key=${apiKey}`,
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=20${pageTokenParam}&key=${apiKey}`,
       );
 
       if (!response.ok) {
@@ -63,11 +68,21 @@ export default function FavoritesPage() {
 
       const data = await response.json();
       setVideos(data.items || []);
+      setNextPageToken(data.nextPageToken || null);
+      setPrevPageToken(data.prevPageToken || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChannelClick = async (channel: FavoriteChannel) => {
+    setSelectedChannel(channel);
+    setSelectedVideo(null);
+    setNextPageToken(null);
+    setPrevPageToken(null);
+    await fetchChannelVideos(channel.channelId);
   };
 
   const handleVideoClick = (videoId: string) => {
@@ -79,6 +94,20 @@ export default function FavoritesPage() {
     setVideos([]);
     setSelectedVideo(null);
     setError("");
+    setNextPageToken(null);
+    setPrevPageToken(null);
+  };
+
+  const handleNextPage = () => {
+    if (nextPageToken && selectedChannel) {
+      fetchChannelVideos(selectedChannel.channelId, nextPageToken);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (prevPageToken && selectedChannel) {
+      fetchChannelVideos(selectedChannel.channelId, prevPageToken);
+    }
   };
 
   const handleRemoveFavorite = (e: React.MouseEvent, channelId: string) => {
@@ -174,37 +203,60 @@ export default function FavoritesPage() {
                 <p className="text-lg">読み込み中...</p>
               </div>
             ) : videos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {videos.map((video) => (
-                  <div
-                    key={video.id.videoId}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleVideoClick(video.id.videoId)}
-                    onKeyDown={(e) =>
-                      handleKeyDown(e, () => handleVideoClick(video.id.videoId))
-                    }
-                    className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={video.snippet.thumbnails.medium.url}
-                      alt={video.snippet.title}
-                      className="w-full aspect-video object-cover"
-                    />
-                    <div className="p-4">
-                      <h3 className="font-semibold mb-2 line-clamp-2">
-                        {video.snippet.title}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {new Date(video.snippet.publishedAt).toLocaleDateString(
-                          "ja-JP",
-                        )}
-                      </p>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {videos.map((video) => (
+                    <div
+                      key={video.id.videoId}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleVideoClick(video.id.videoId)}
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, () => handleVideoClick(video.id.videoId))
+                      }
+                      className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={video.snippet.thumbnails.medium.url}
+                        alt={video.snippet.title}
+                        className="w-full aspect-video object-cover"
+                      />
+                      <div className="p-4">
+                        <h3 className="font-semibold mb-2 line-clamp-2">
+                          {video.snippet.title}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {new Date(video.snippet.publishedAt).toLocaleDateString(
+                            "ja-JP",
+                          )}
+                        </p>
+                      </div>
                     </div>
+                  ))}
+                </div>
+                {/* ページネーション */}
+                {(prevPageToken || nextPageToken) && (
+                  <div className="flex justify-center gap-4 mt-8">
+                    <button
+                      type="button"
+                      disabled={!prevPageToken || loading}
+                      onClick={handlePrevPage}
+                      className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    >
+                      ← 前へ
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!nextPageToken || loading}
+                      onClick={handleNextPage}
+                      className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    >
+                      次へ →
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <div className="text-center text-gray-400 mt-8">
                 <p className="text-lg">動画が見つかりませんでした</p>
