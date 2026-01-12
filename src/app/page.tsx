@@ -43,15 +43,21 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold">
-            YouTube Viewer
-          </h1>
-          <Link
-            href="/search"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-          >
-            動画検索へ
-          </Link>
+          <h1 className="text-3xl sm:text-4xl font-bold">YouTube Viewer</h1>
+          <div className="flex gap-2">
+            <Link
+              href="/favorites"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              お気に入り
+            </Link>
+            <Link
+              href="/search"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              動画検索へ
+            </Link>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="mb-8">
@@ -97,7 +103,8 @@ export default function Home() {
           <div className="text-center text-gray-400 mt-16">
             <p className="text-lg mb-2">YouTube URLを入力して動画を表示</p>
             <p className="text-sm">
-              例: https://www.youtube.com/watch?v=xxxxx または https://youtu.be/xxxxx
+              例: https://www.youtube.com/watch?v=xxxxx または
+              https://youtu.be/xxxxx
             </p>
           </div>
         )}
