@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
+import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
 
 type SearchMode = "channel" | "video";
 
@@ -43,66 +44,153 @@ export default function SearchPage() {
   const [channels, setChannels] = useState<ChannelItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    null,
+  );
   const [selectedChannelName, setSelectedChannelName] = useState<string>("");
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      setError(searchMode === "channel" ? "チャンネル名を入力してください" : "動画タイトルを入力してください");
-      return;
-    }
+  const { isFavorite, toggleFavorite } = useFavoriteChannels();
 
+  const searchVideos = async (query: string, pageToken?: string | null) => {
     setLoading(true);
     setError("");
-    setChannels([]);
-    setVideos([]);
-    setSelectedChannelId(null);
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-      
+
       if (!apiKey) {
-        setError("YouTube API Keyが設定されていません。.env.localファイルにNEXT_PUBLIC_YOUTUBE_API_KEYを設定してください。");
+        setError(
+          "YouTube API Keyが設定されていません。.env.localファイルにNEXT_PUBLIC_YOUTUBE_API_KEYを設定してください。",
+        );
         setLoading(false);
         return;
       }
 
-      const searchType = searchMode === "channel" ? "channel" : "video";
-      const maxResults = searchMode === "channel" ? 10 : 20;
-      const orderParam = searchMode === "video" ? "&order=date" : "";
-      
+      const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-          searchQuery
-        )}&type=${searchType}&maxResults=${maxResults}${orderParam}&key=${apiKey}`
+          query,
+        )}&type=video&maxResults=20&order=date${pageTokenParam}&key=${apiKey}`,
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
+        const errorMessage =
+          errorData?.error?.message || `HTTP ${response.status}`;
         throw new Error(`検索に失敗しました: ${errorMessage}`);
       }
 
       const data = await response.json();
-      
-      if (searchMode === "channel") {
-        setChannels(data.items || []);
-        if (data.items?.length === 0) {
-          setError("チャンネルが見つかりませんでした");
-        }
-      } else {
-        setVideos(data.items || []);
-        if (data.items?.length === 0) {
-          setError("動画が見つかりませんでした");
-        }
+      setVideos(data.items || []);
+      setNextPageToken(data.nextPageToken || null);
+      setPrevPageToken(data.prevPageToken || null);
+
+      if (data.items?.length === 0) {
+        setError("動画が見つかりませんでした");
       }
     } catch (err) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
       setError(
-        err instanceof Error ? err.message : "エラーが発生しました"
+        searchMode === "channel"
+          ? "チャンネル名を入力してください"
+          : "動画タイトルを入力してください",
       );
+      return;
+    }
+
+    setChannels([]);
+    setVideos([]);
+    setSelectedChannelId(null);
+    setNextPageToken(null);
+    setPrevPageToken(null);
+
+    if (searchMode === "video") {
+      await searchVideos(searchQuery);
+      return;
+    }
+
+    // チャンネル検索
+    setLoading(true);
+    setError("");
+
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+
+      if (!apiKey) {
+        setError(
+          "YouTube API Keyが設定されていません。.env.localファイルにNEXT_PUBLIC_YOUTUBE_API_KEYを設定してください。",
+        );
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+          searchQuery,
+        )}&type=channel&maxResults=10&key=${apiKey}`,
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.error?.message || `HTTP ${response.status}`;
+        throw new Error(`検索に失敗しました: ${errorMessage}`);
+      }
+
+      const data = await response.json();
+      setChannels(data.items || []);
+      if (data.items?.length === 0) {
+        setError("チャンネルが見つかりませんでした");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchChannelVideos = async (
+    channelId: string,
+    pageToken?: string | null,
+  ) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+
+      const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=20${pageTokenParam}&key=${apiKey}`,
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.error?.message || `HTTP ${response.status}`;
+        throw new Error(`動画の取得に失敗しました: ${errorMessage}`);
+      }
+
+      const data = await response.json();
+      setVideos(data.items || []);
+      setNextPageToken(data.nextPageToken || null);
+      setPrevPageToken(data.prevPageToken || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -111,31 +199,9 @@ export default function SearchPage() {
   const handleChannelClick = async (channelId: string, channelName: string) => {
     setSelectedChannelId(channelId);
     setSelectedChannelName(channelName);
-    setLoading(true);
-    setError("");
-
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=20&key=${apiKey}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
-        throw new Error(`動画の取得に失敗しました: ${errorMessage}`);
-      }
-
-      const data = await response.json();
-      setVideos(data.items || []);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "エラーが発生しました"
-      );
-    } finally {
-      setLoading(false);
-    }
+    setNextPageToken(null);
+    setPrevPageToken(null);
+    await fetchChannelVideos(channelId);
   };
 
   const handleVideoClick = (videoId: string) => {
@@ -150,6 +216,8 @@ export default function SearchPage() {
     setSelectedChannelId(null);
     setSelectedChannelName("");
     setError("");
+    setNextPageToken(null);
+    setPrevPageToken(null);
   };
 
   const handleBackToChannels = () => {
@@ -157,6 +225,8 @@ export default function SearchPage() {
     setSelectedChannelId(null);
     setSelectedChannelName("");
     setSelectedVideo(null);
+    setNextPageToken(null);
+    setPrevPageToken(null);
   };
 
   const handleModeChange = (mode: SearchMode) => {
@@ -168,26 +238,69 @@ export default function SearchPage() {
     setSelectedChannelName("");
     setSelectedVideo(null);
     setError("");
+    setNextPageToken(null);
+    setPrevPageToken(null);
+  };
+
+  const handleNextPage = () => {
+    if (!nextPageToken) return;
+    if (selectedChannelId) {
+      fetchChannelVideos(selectedChannelId, nextPageToken);
+    } else if (searchQuery) {
+      searchVideos(searchQuery, nextPageToken);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (!prevPageToken) return;
+    if (selectedChannelId) {
+      fetchChannelVideos(selectedChannelId, prevPageToken);
+    } else if (searchQuery) {
+      searchVideos(searchQuery, prevPageToken);
+    }
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent, channel: ChannelItem) => {
+    e.stopPropagation();
+    toggleFavorite({
+      channelId: channel.id.channelId,
+      title: channel.snippet.title,
+      thumbnailUrl: channel.snippet.thumbnails.medium.url,
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, callback: () => void) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      callback();
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold">
-            動画検索
-          </h1>
-          <Link
-            href="/"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-          >
-            URL入力へ
-          </Link>
+          <h1 className="text-3xl sm:text-4xl font-bold">動画検索</h1>
+          <div className="flex gap-2">
+            <Link
+              href="/favorites"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              お気に入り
+            </Link>
+            <Link
+              href="/"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              URL入力へ
+            </Link>
+          </div>
         </div>
 
         {/* タブ切り替え */}
         <div className="flex gap-2 mb-6">
           <button
+            type="button"
             onClick={() => handleModeChange("channel")}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
               searchMode === "channel"
@@ -198,6 +311,7 @@ export default function SearchPage() {
             チャンネル検索
           </button>
           <button
+            type="button"
             onClick={() => handleModeChange("video")}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
               searchMode === "video"
@@ -215,7 +329,11 @@ export default function SearchPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={searchMode === "channel" ? "チャンネル名を入力" : "動画タイトルを入力"}
+              placeholder={
+                searchMode === "channel"
+                  ? "チャンネル名を入力"
+                  : "動画タイトルを入力"
+              }
               className="flex-1 px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
             />
             <button
@@ -246,6 +364,7 @@ export default function SearchPage() {
         {selectedVideo ? (
           <div className="mb-8">
             <button
+              type="button"
               onClick={() => setSelectedVideo(null)}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
@@ -267,19 +386,28 @@ export default function SearchPage() {
         ) : selectedChannelId && videos.length > 0 ? (
           <>
             <button
+              type="button"
               onClick={handleBackToChannels}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               ← チャンネル一覧に戻る
             </button>
-            <h2 className="text-2xl font-bold mb-6">{selectedChannelName} の動画</h2>
+            <h2 className="text-2xl font-bold mb-6">
+              {selectedChannelName} の動画
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videos.map((video) => (
                 <div
                   key={video.id.videoId}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleVideoClick(video.id.videoId)}
+                  onKeyDown={(e) =>
+                    handleKeyDown(e, () => handleVideoClick(video.id.videoId))
+                  }
                   className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={video.snippet.thumbnails.medium.url}
                     alt={video.snippet.title}
@@ -290,14 +418,35 @@ export default function SearchPage() {
                       {video.snippet.title}
                     </h3>
                     <p className="text-xs text-gray-500">
-                      {new Date(
-                        video.snippet.publishedAt
-                      ).toLocaleDateString("ja-JP")}
+                      {new Date(video.snippet.publishedAt).toLocaleDateString(
+                        "ja-JP",
+                      )}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
+            {/* チャンネル動画ページネーション */}
+            {(prevPageToken || nextPageToken) && (
+              <div className="flex justify-center gap-4 mt-8">
+                <button
+                  type="button"
+                  disabled={!prevPageToken || loading}
+                  onClick={handlePrevPage}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  ← 前へ
+                </button>
+                <button
+                  type="button"
+                  disabled={!nextPageToken || loading}
+                  onClick={handleNextPage}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  次へ →
+                </button>
+              </div>
+            )}
           </>
         ) : videos.length > 0 && searchMode === "video" ? (
           <>
@@ -306,9 +455,15 @@ export default function SearchPage() {
               {videos.map((video) => (
                 <div
                   key={video.id.videoId}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleVideoClick(video.id.videoId)}
+                  onKeyDown={(e) =>
+                    handleKeyDown(e, () => handleVideoClick(video.id.videoId))
+                  }
                   className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={video.snippet.thumbnails.medium.url}
                     alt={video.snippet.title}
@@ -322,14 +477,35 @@ export default function SearchPage() {
                       {video.snippet.channelTitle}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {new Date(
-                        video.snippet.publishedAt
-                      ).toLocaleDateString("ja-JP")}
+                      {new Date(video.snippet.publishedAt).toLocaleDateString(
+                        "ja-JP",
+                      )}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
+            {/* ページネーション */}
+            {(prevPageToken || nextPageToken) && (
+              <div className="flex justify-center gap-4 mt-8">
+                <button
+                  type="button"
+                  disabled={!prevPageToken || loading}
+                  onClick={handlePrevPage}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  ← 前へ
+                </button>
+                <button
+                  type="button"
+                  disabled={!nextPageToken || loading}
+                  onClick={handleNextPage}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  次へ →
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -340,9 +516,67 @@ export default function SearchPage() {
                   {channels.map((channel) => (
                     <div
                       key={channel.id.channelId}
-                      onClick={() => handleChannelClick(channel.id.channelId, channel.snippet.title)}
-                      className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        handleChannelClick(
+                          channel.id.channelId,
+                          channel.snippet.title,
+                        )
+                      }
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, () =>
+                          handleChannelClick(
+                            channel.id.channelId,
+                            channel.snippet.title,
+                          ),
+                        )
+                      }
+                      className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg relative group"
                     >
+                      <button
+                        type="button"
+                        onClick={(e) => handleFavoriteClick(e, channel)}
+                        className="absolute top-2 right-2 z-10 p-2 bg-gray-900/80 hover:bg-gray-700 rounded-full transition-colors"
+                        title={
+                          isFavorite(channel.id.channelId)
+                            ? "お気に入りから削除"
+                            : "お気に入りに追加"
+                        }
+                      >
+                        {isFavorite(channel.id.channelId) ? (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-red-500"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-gray-300 hover:text-red-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={channel.snippet.thumbnails.medium.url}
                         alt={channel.snippet.title}
@@ -362,18 +596,23 @@ export default function SearchPage() {
               </>
             )}
 
-            {!loading && channels.length === 0 && videos.length === 0 && !error && (
-              <div className="text-center text-gray-400 mt-16">
-                <p className="text-lg mb-2">
-                  {searchMode === "channel" ? "チャンネル名で検索" : "動画タイトルで検索"}
-                </p>
-                <p className="text-sm">
-                  {searchMode === "channel" 
-                    ? "チャンネルを選択すると、そのチャンネルの動画一覧が表示されます"
-                    : "検索結果から動画を選択して視聴できます"}
-                </p>
-              </div>
-            )}
+            {!loading &&
+              channels.length === 0 &&
+              videos.length === 0 &&
+              !error && (
+                <div className="text-center text-gray-400 mt-16">
+                  <p className="text-lg mb-2">
+                    {searchMode === "channel"
+                      ? "チャンネル名で検索"
+                      : "動画タイトルで検索"}
+                  </p>
+                  <p className="text-sm">
+                    {searchMode === "channel"
+                      ? "チャンネルを選択すると、そのチャンネルの動画一覧が表示されます"
+                      : "検索結果から動画を選択して視聴できます"}
+                  </p>
+                </div>
+              )}
           </>
         )}
       </div>
