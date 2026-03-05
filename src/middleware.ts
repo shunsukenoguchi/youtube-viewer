@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  // ローカル開発環境では認証をスキップ
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   // Basic認証の認証情報を環境変数から取得
   const basicAuthUser = process.env.BASIC_AUTH_USER;
   const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD;
