@@ -268,7 +268,7 @@ export default function FavoritesPage() {
             <h2 className="text-2xl font-bold mb-6">
               お気に入りチャンネル一覧
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-2">
               {favorites.map((channel) => (
                 <div
                   key={channel.channelId}
@@ -278,12 +278,21 @@ export default function FavoritesPage() {
                   onKeyDown={(e) =>
                     handleKeyDown(e, () => handleChannelClick(channel))
                   }
-                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg relative group"
+                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-700 transition-all shadow-lg relative group flex items-center gap-4 px-4 py-3"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={channel.thumbnailUrl}
+                    alt={channel.title}
+                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                  />
+                  <h3 className="font-semibold flex-1 line-clamp-2">
+                    {channel.title}
+                  </h3>
                   <button
                     type="button"
                     onClick={(e) => handleRemoveFavorite(e, channel.channelId)}
-                    className="absolute top-2 right-2 z-10 p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
                     title="お気に入りから削除"
                   >
                     <svg
@@ -300,17 +309,6 @@ export default function FavoritesPage() {
                       />
                     </svg>
                   </button>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={channel.thumbnailUrl}
-                    alt={channel.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">
-                      {channel.title}
-                    </h3>
-                  </div>
                 </div>
               ))}
             </div>
