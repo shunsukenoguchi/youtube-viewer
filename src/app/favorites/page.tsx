@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type FavoriteChannel,
   useFavoriteChannels,
@@ -26,6 +26,7 @@ interface VideoItem {
 
 export default function FavoritesPage() {
   const { favorites, isLoaded, removeFavorite } = useFavoriteChannels();
+  const scrollPositionRef = useRef(0);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedChannel, setSelectedChannel] =
@@ -34,6 +35,28 @@ export default function FavoritesPage() {
   const [error, setError] = useState("");
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    history.replaceState({ view: "channels" }, "");
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state as { view: string } | null;
+      if (state?.view === "channels") {
+        setSelectedChannel(null);
+        setVideos([]);
+        setSelectedVideo(null);
+        setError("");
+        setNextPageToken(null);
+        setPrevPageToken(null);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        });
+      } else if (state?.view === "videos") {
+        setSelectedVideo(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const fetchChannelVideos = async (
     channelId: string,
@@ -78,6 +101,8 @@ export default function FavoritesPage() {
   };
 
   const handleChannelClick = async (channel: FavoriteChannel) => {
+    scrollPositionRef.current = window.scrollY;
+    history.pushState({ view: "videos" }, "");
     setSelectedChannel(channel);
     setSelectedVideo(null);
     setNextPageToken(null);
@@ -86,16 +111,12 @@ export default function FavoritesPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
+    history.pushState({ view: "player" }, "");
     setSelectedVideo(videoId);
   };
 
   const handleBackToChannels = () => {
-    setSelectedChannel(null);
-    setVideos([]);
-    setSelectedVideo(null);
-    setError("");
-    setNextPageToken(null);
-    setPrevPageToken(null);
+    history.back();
   };
 
   const handleNextPage = () => {
@@ -168,7 +189,7 @@ export default function FavoritesPage() {
           <div className="mb-8">
             <button
               type="button"
-              onClick={() => setSelectedVideo(null)}
+              onClick={() => history.back()}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               ← 動画一覧に戻る

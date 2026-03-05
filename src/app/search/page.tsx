@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
 
 type SearchMode = "channel" | "video";
@@ -53,7 +53,33 @@ export default function SearchPage() {
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
 
+  const scrollPositionRef = useRef(0);
   const { isFavorite, toggleFavorite } = useFavoriteChannels();
+
+  useEffect(() => {
+    history.replaceState({ view: "search" }, "");
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state as { view: string } | null;
+      if (state?.view === "search") {
+        setSelectedChannelId(null);
+        setSelectedChannelName("");
+        setVideos([]);
+        setSelectedVideo(null);
+        setNextPageToken(null);
+        setPrevPageToken(null);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        });
+      } else if (
+        state?.view === "channelVideos" ||
+        state?.view === "videoSearch"
+      ) {
+        setSelectedVideo(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const searchVideos = async (query: string, pageToken?: string | null) => {
     setLoading(true);
@@ -118,9 +144,12 @@ export default function SearchPage() {
     setPrevPageToken(null);
 
     if (searchMode === "video") {
+      history.replaceState({ view: "videoSearch" }, "");
       await searchVideos(searchQuery);
       return;
     }
+
+    history.replaceState({ view: "search" }, "");
 
     // チャンネル検索
     setLoading(true);
@@ -197,6 +226,8 @@ export default function SearchPage() {
   };
 
   const handleChannelClick = async (channelId: string, channelName: string) => {
+    scrollPositionRef.current = window.scrollY;
+    history.pushState({ view: "channelVideos" }, "");
     setSelectedChannelId(channelId);
     setSelectedChannelName(channelName);
     setNextPageToken(null);
@@ -205,10 +236,12 @@ export default function SearchPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
+    history.pushState({ view: "player" }, "");
     setSelectedVideo(videoId);
   };
 
   const handleClear = () => {
+    history.replaceState({ view: "search" }, "");
     setSelectedVideo(null);
     setVideos([]);
     setChannels([]);
@@ -221,12 +254,7 @@ export default function SearchPage() {
   };
 
   const handleBackToChannels = () => {
-    setVideos([]);
-    setSelectedChannelId(null);
-    setSelectedChannelName("");
-    setSelectedVideo(null);
-    setNextPageToken(null);
-    setPrevPageToken(null);
+    history.back();
   };
 
   const handleModeChange = (mode: SearchMode) => {
@@ -365,7 +393,7 @@ export default function SearchPage() {
           <div className="mb-8">
             <button
               type="button"
-              onClick={() => setSelectedVideo(null)}
+              onClick={() => history.back()}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               ← 動画一覧に戻る
