@@ -313,7 +313,7 @@ export default function FavoritesPage() {
                   <button
                     type="button"
                     onClick={(e) => handleRemoveFavorite(e, channel.channelId)}
-                    className="p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                    className="p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors flex-shrink-0"
                     title="お気に入りから削除"
                   >
                     <svg
