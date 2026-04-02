@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -136,16 +137,6 @@ export default function FavoritesPage() {
     removeFavorite(channelId);
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    callback: () => void,
-  ) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      callback();
-    }
-  };
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
@@ -225,35 +216,42 @@ export default function FavoritesPage() {
               </div>
             ) : videos.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                   {videos.map((video) => (
-                    <div
+                    <button
+                      type="button"
                       key={video.id.videoId}
-                      role="button"
-                      tabIndex={0}
                       onClick={() => handleVideoClick(video.id.videoId)}
-                      onKeyDown={(e) =>
-                        handleKeyDown(e, () => handleVideoClick(video.id.videoId))
-                      }
-                      className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
+                      className="bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={video.snippet.thumbnails.medium.url}
-                        alt={video.snippet.title}
-                        className="w-full aspect-video object-cover"
-                      />
-                      <div className="p-4">
-                        <h3 className="font-semibold mb-2 line-clamp-2">
-                          {video.snippet.title}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          {new Date(video.snippet.publishedAt).toLocaleDateString(
-                            "ja-JP",
-                          )}
-                        </p>
+                      <div className="flex flex-col sm:flex-row">
+                        <Image
+                          src={video.snippet.thumbnails.medium.url}
+                          alt={video.snippet.title}
+                          width={320}
+                          height={180}
+                          className="w-full sm:w-72 md:w-80 aspect-video object-cover flex-shrink-0"
+                        />
+                        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 text-left">
+                          <div>
+                            <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">
+                              {video.snippet.title}
+                            </h3>
+                            <p className="text-sm text-gray-400 mb-3">
+                              {video.snippet.channelTitle}
+                            </p>
+                            <p className="text-sm text-gray-500 line-clamp-2">
+                              {video.snippet.description || "説明はありません"}
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-4">
+                            {new Date(
+                              video.snippet.publishedAt,
+                            ).toLocaleDateString("ja-JP")}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {/* ページネーション */}
@@ -289,31 +287,37 @@ export default function FavoritesPage() {
             <h2 className="text-2xl font-bold mb-6">
               お気に入りチャンネル一覧
             </h2>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               {favorites.map((channel) => (
                 <div
                   key={channel.channelId}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleChannelClick(channel)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(e, () => handleChannelClick(channel))
-                  }
-                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-700 transition-all shadow-lg relative group flex items-center gap-4 px-4 py-3"
+                  className="bg-gray-800 rounded-2xl overflow-hidden hover:bg-gray-700 transition-all shadow-lg relative group flex flex-col sm:flex-row sm:items-center gap-4 px-4 py-4 sm:px-5"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={channel.thumbnailUrl}
-                    alt={channel.title}
-                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  />
-                  <h3 className="font-semibold flex-1 line-clamp-2">
-                    {channel.title}
-                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => handleChannelClick(channel)}
+                    className="flex flex-1 min-w-0 cursor-pointer flex-col gap-4 text-left sm:flex-row sm:items-center"
+                  >
+                    <Image
+                      src={channel.thumbnailUrl}
+                      alt={channel.title}
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-full object-cover flex-shrink-0 self-start sm:self-center"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg line-clamp-2">
+                        {channel.title}
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        チャンネルを開いて最新動画を確認
+                      </p>
+                    </div>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => handleRemoveFavorite(e, channel.channelId)}
-                    className="p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors flex-shrink-0"
+                    className="p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors flex-shrink-0 self-end sm:self-center"
                     title="お気に入りから削除"
                   >
                     <svg

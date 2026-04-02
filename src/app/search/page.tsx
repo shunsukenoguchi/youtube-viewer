@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
@@ -297,13 +298,6 @@ export default function SearchPage() {
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, callback: () => void) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      callback();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
@@ -423,35 +417,39 @@ export default function SearchPage() {
             <h2 className="text-2xl font-bold mb-6">
               {selectedChannelName} の動画
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-4">
               {videos.map((video) => (
-                <div
+                <button
+                  type="button"
                   key={video.id.videoId}
-                  role="button"
-                  tabIndex={0}
                   onClick={() => handleVideoClick(video.id.videoId)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(e, () => handleVideoClick(video.id.videoId))
-                  }
-                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
+                  className="bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={video.snippet.thumbnails.medium.url}
-                    alt={video.snippet.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">
-                      {video.snippet.title}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {new Date(video.snippet.publishedAt).toLocaleDateString(
-                        "ja-JP",
-                      )}
-                    </p>
+                  <div className="flex flex-col sm:flex-row">
+                    <Image
+                      src={video.snippet.thumbnails.medium.url}
+                      alt={video.snippet.title}
+                      width={320}
+                      height={180}
+                      className="w-full sm:w-72 md:w-80 aspect-video object-cover flex-shrink-0"
+                    />
+                    <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 text-left">
+                      <div>
+                        <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">
+                          {video.snippet.title}
+                        </h3>
+                        <p className="text-sm text-gray-400 mb-3">
+                          {video.snippet.channelTitle}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {new Date(video.snippet.publishedAt).toLocaleDateString(
+                          "ja-JP",
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
             {/* チャンネル動画ページネーション */}
@@ -479,38 +477,42 @@ export default function SearchPage() {
         ) : videos.length > 0 && searchMode === "video" ? (
           <>
             <h2 className="text-2xl font-bold mb-6">検索結果</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-4">
               {videos.map((video) => (
-                <div
+                <button
+                  type="button"
                   key={video.id.videoId}
-                  role="button"
-                  tabIndex={0}
                   onClick={() => handleVideoClick(video.id.videoId)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(e, () => handleVideoClick(video.id.videoId))
-                  }
-                  className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg"
+                  className="bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={video.snippet.thumbnails.medium.url}
-                    alt={video.snippet.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">
-                      {video.snippet.title}
-                    </h3>
-                    <p className="text-sm text-gray-400 mb-1">
-                      {video.snippet.channelTitle}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(video.snippet.publishedAt).toLocaleDateString(
-                        "ja-JP",
-                      )}
-                    </p>
+                  <div className="flex flex-col sm:flex-row">
+                    <Image
+                      src={video.snippet.thumbnails.medium.url}
+                      alt={video.snippet.title}
+                      width={320}
+                      height={180}
+                      className="w-full sm:w-72 md:w-80 aspect-video object-cover flex-shrink-0"
+                    />
+                    <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 text-left">
+                      <div>
+                        <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">
+                          {video.snippet.title}
+                        </h3>
+                        <p className="text-sm text-gray-400 mb-3">
+                          {video.snippet.channelTitle}
+                        </p>
+                        <p className="text-sm text-gray-500 line-clamp-2">
+                          {video.snippet.description || "説明はありません"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-4">
+                        {new Date(video.snippet.publishedAt).toLocaleDateString(
+                          "ja-JP",
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
             {/* ページネーション */}
@@ -540,32 +542,16 @@ export default function SearchPage() {
             {channels.length > 0 && searchMode === "channel" && (
               <>
                 <h2 className="text-2xl font-bold mb-6">チャンネル一覧</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                   {channels.map((channel) => (
                     <div
                       key={channel.id.channelId}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() =>
-                        handleChannelClick(
-                          channel.id.channelId,
-                          channel.snippet.title,
-                        )
-                      }
-                      onKeyDown={(e) =>
-                        handleKeyDown(e, () =>
-                          handleChannelClick(
-                            channel.id.channelId,
-                            channel.snippet.title,
-                          ),
-                        )
-                      }
-                      className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all hover:scale-105 shadow-lg relative group"
+                      className="bg-gray-800 rounded-2xl overflow-hidden transition-all shadow-lg relative group hover:bg-gray-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
                     >
                       <button
                         type="button"
                         onClick={(e) => handleFavoriteClick(e, channel)}
-                        className="absolute top-2 right-2 z-10 p-2 bg-gray-900/80 hover:bg-gray-700 rounded-full transition-colors"
+                        className="absolute top-3 right-3 z-10 p-2 bg-gray-900/80 hover:bg-gray-700 rounded-full transition-colors"
                         title={
                           isFavorite(channel.id.channelId)
                             ? "お気に入りから削除"
@@ -604,20 +590,33 @@ export default function SearchPage() {
                           </svg>
                         )}
                       </button>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={channel.snippet.thumbnails.medium.url}
-                        alt={channel.snippet.title}
-                        className="w-full aspect-video object-cover"
-                      />
-                      <div className="p-4">
-                        <h3 className="font-semibold mb-2 line-clamp-2">
-                          {channel.snippet.title}
-                        </h3>
-                        <p className="text-sm text-gray-400 line-clamp-2">
-                          {channel.snippet.description}
-                        </p>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleChannelClick(
+                            channel.id.channelId,
+                            channel.snippet.title,
+                          )
+                        }
+                        className="flex w-full cursor-pointer flex-col text-left sm:flex-row sm:items-center"
+                      >
+                        <Image
+                          src={channel.snippet.thumbnails.medium.url}
+                          alt={channel.snippet.title}
+                          width={144}
+                          height={144}
+                          className="w-full sm:w-32 md:w-36 aspect-video sm:aspect-square object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 p-4 sm:p-5 pr-16 sm:pr-20">
+                          <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">
+                            {channel.snippet.title}
+                          </h3>
+                          <p className="text-sm text-gray-400 line-clamp-3">
+                            {channel.snippet.description ||
+                              "チャンネルの説明はありません"}
+                          </p>
+                        </div>
+                      </button>
                     </div>
                   ))}
                 </div>
