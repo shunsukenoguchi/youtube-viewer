@@ -216,35 +216,35 @@ export default function FavoritesPage() {
               </div>
             ) : videos.length > 0 ? (
               <>
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                   {videos.map((video) => (
                     <button
                       type="button"
                       key={video.id.videoId}
                       onClick={() => handleVideoClick(video.id.videoId)}
-                      className="bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="h-full bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
-                      <div className="flex flex-col sm:flex-row">
+                      <div className="flex h-full flex-col">
                         <Image
                           src={video.snippet.thumbnails.medium.url}
                           alt={video.snippet.title}
                           width={320}
                           height={180}
-                          className="w-full sm:w-72 md:w-80 aspect-video object-cover flex-shrink-0"
+                          className="w-full aspect-video object-cover"
                         />
-                        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 text-left">
+                        <div className="flex flex-1 flex-col justify-between p-3 text-left sm:p-4">
                           <div>
-                            <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-2">
+                            <h3 className="mb-2 line-clamp-2 text-sm font-semibold sm:text-base">
                               {video.snippet.title}
                             </h3>
-                            <p className="text-sm text-gray-400 mb-3">
+                            <p className="mb-2 text-xs text-gray-400 sm:text-sm">
                               {video.snippet.channelTitle}
                             </p>
-                            <p className="text-sm text-gray-500 line-clamp-2">
+                            <p className="line-clamp-2 text-xs text-gray-500 sm:text-sm">
                               {video.snippet.description || "説明はありません"}
                             </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-4">
+                          <p className="mt-3 text-xs text-gray-500">
                             {new Date(
                               video.snippet.publishedAt,
                             ).toLocaleDateString("ja-JP")}
