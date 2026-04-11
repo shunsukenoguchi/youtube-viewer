@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
+import { useFavoriteVideos } from "@/hooks/useFavoriteVideos";
 
 type SearchMode = "channel" | "video";
 
@@ -56,6 +57,8 @@ export default function SearchPage() {
 
   const scrollPositionRef = useRef(0);
   const { isFavorite, toggleFavorite } = useFavoriteChannels();
+  const { isFavorite: isVideoFavorite, toggleFavorite: toggleVideoFavorite } =
+    useFavoriteVideos();
 
   useEffect(() => {
     history.replaceState({ view: "search" }, "");
@@ -298,6 +301,17 @@ export default function SearchPage() {
     });
   };
 
+  const handleVideoFavoriteClick = (e: React.MouseEvent, video: VideoItem) => {
+    e.stopPropagation();
+    toggleVideoFavorite({
+      videoId: video.id.videoId,
+      title: video.snippet.title,
+      thumbnailUrl: video.snippet.thumbnails.medium.url,
+      channelTitle: video.snippet.channelTitle,
+      publishedAt: video.snippet.publishedAt,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
@@ -419,13 +433,57 @@ export default function SearchPage() {
             </h2>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
               {videos.map((video) => (
-                <button
-                  type="button"
+                <div
                   key={video.id.videoId}
-                  onClick={() => handleVideoClick(video.id.videoId)}
-                  className="h-full bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="relative h-full bg-gray-800 rounded-2xl overflow-hidden transition-all shadow-lg hover:bg-gray-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
                 >
-                  <div className="flex h-full flex-col">
+                  <button
+                    type="button"
+                    onClick={(e) => handleVideoFavoriteClick(e, video)}
+                    className="absolute top-3 right-3 z-10 p-2 bg-gray-900/80 hover:bg-gray-700 rounded-full transition-colors"
+                    title={
+                      isVideoFavorite(video.id.videoId)
+                        ? "お気に入りから削除"
+                        : "お気に入りに追加"
+                    }
+                  >
+                    {isVideoFavorite(video.id.videoId) ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-red-500"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-300 hover:text-red-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleVideoClick(video.id.videoId)}
+                    className="flex h-full w-full cursor-pointer flex-col text-left"
+                  >
                     <Image
                       src={video.snippet.thumbnails.medium.url}
                       alt={video.snippet.title}
@@ -433,7 +491,7 @@ export default function SearchPage() {
                       height={180}
                       className="w-full aspect-video object-cover"
                     />
-                    <div className="flex flex-1 flex-col justify-between p-3 text-left sm:p-4">
+                    <div className="flex flex-1 flex-col justify-between p-3 pr-14 sm:p-4 sm:pr-16">
                       <div>
                         <h3 className="mb-2 line-clamp-2 text-sm font-semibold sm:text-base">
                           {video.snippet.title}
@@ -448,8 +506,8 @@ export default function SearchPage() {
                         )}
                       </p>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
             {/* チャンネル動画ページネーション */}
@@ -479,13 +537,57 @@ export default function SearchPage() {
             <h2 className="text-2xl font-bold mb-6">検索結果</h2>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
               {videos.map((video) => (
-                <button
-                  type="button"
+                <div
                   key={video.id.videoId}
-                  onClick={() => handleVideoClick(video.id.videoId)}
-                  className="h-full bg-gray-800 rounded-2xl overflow-hidden cursor-pointer transition-all shadow-lg hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="relative h-full bg-gray-800 rounded-2xl overflow-hidden transition-all shadow-lg hover:bg-gray-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500"
                 >
-                  <div className="flex h-full flex-col">
+                  <button
+                    type="button"
+                    onClick={(e) => handleVideoFavoriteClick(e, video)}
+                    className="absolute top-3 right-3 z-10 p-2 bg-gray-900/80 hover:bg-gray-700 rounded-full transition-colors"
+                    title={
+                      isVideoFavorite(video.id.videoId)
+                        ? "お気に入りから削除"
+                        : "お気に入りに追加"
+                    }
+                  >
+                    {isVideoFavorite(video.id.videoId) ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-red-500"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-300 hover:text-red-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleVideoClick(video.id.videoId)}
+                    className="flex h-full w-full cursor-pointer flex-col text-left"
+                  >
                     <Image
                       src={video.snippet.thumbnails.medium.url}
                       alt={video.snippet.title}
@@ -493,7 +595,7 @@ export default function SearchPage() {
                       height={180}
                       className="w-full aspect-video object-cover"
                     />
-                    <div className="flex flex-1 flex-col justify-between p-3 text-left sm:p-4">
+                    <div className="flex flex-1 flex-col justify-between p-3 pr-14 sm:p-4 sm:pr-16">
                       <div>
                         <h3 className="mb-2 line-clamp-2 text-sm font-semibold sm:text-base">
                           {video.snippet.title}
@@ -511,8 +613,8 @@ export default function SearchPage() {
                         )}
                       </p>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
             {/* ページネーション */}
