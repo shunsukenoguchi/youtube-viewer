@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
+import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [videoId, setVideoId] = useState("");
+  const [error, setError] = useState("");
+  const { canStartPlayback } = useDailyWatchLimit();
 
   const extractVideoId = (youtubeUrl: string): string | null => {
     // YouTube URLからビデオIDを抽出
@@ -28,15 +32,21 @@ export default function Home() {
     e.preventDefault();
     const id = extractVideoId(url);
     if (id) {
+      if (!canStartPlayback()) {
+        setError("本日の視聴時間60分に達したため、再生できません");
+        return;
+      }
+      setError("");
       setVideoId(id);
     } else {
-      alert("有効なYouTube URLを入力してください");
+      setError("有効なYouTube URLを入力してください");
     }
   };
 
   const handleClear = () => {
     setUrl("");
     setVideoId("");
+    setError("");
   };
 
   return (
@@ -87,16 +97,20 @@ export default function Home() {
           </div>
         </form>
 
-        {videoId && (
-          <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-            <iframe
-              className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-700 bg-red-900/50 p-4">
+            <p className="text-red-200">{error}</p>
           </div>
+        )}
+
+        {videoId && (
+          <VideoPlayerWithLimit
+            videoId={videoId}
+            onLimitReached={() => {
+              setVideoId("");
+              setError("本日の視聴時間60分に達したため、再生を停止しました");
+            }}
+          />
         )}
 
         {!videoId && (

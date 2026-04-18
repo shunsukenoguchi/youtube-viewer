@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
+import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
 import { useFavoriteVideos } from "@/hooks/useFavoriteVideos";
 
@@ -59,6 +61,7 @@ export default function SearchPage() {
   const { isFavorite, toggleFavorite } = useFavoriteChannels();
   const { isFavorite: isVideoFavorite, toggleFavorite: toggleVideoFavorite } =
     useFavoriteVideos();
+  const { canStartPlayback } = useDailyWatchLimit();
 
   useEffect(() => {
     history.replaceState({ view: "search" }, "");
@@ -240,8 +243,30 @@ export default function SearchPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
+    if (!canStartPlayback()) {
+      setError("本日の視聴時間60分に達したため、再生できません");
+      return;
+    }
+
+    setError("");
     history.pushState({ view: "player" }, "");
     setSelectedVideo(videoId);
+  };
+
+  const handleClosePlayer = () => {
+    setSelectedVideo(null);
+
+    if (selectedChannelId) {
+      history.replaceState({ view: "channelVideos" }, "");
+      return;
+    }
+
+    if (searchMode === "video" && videos.length > 0) {
+      history.replaceState({ view: "videoSearch" }, "");
+      return;
+    }
+
+    history.replaceState({ view: "search" }, "");
   };
 
   const handleClear = () => {
@@ -258,7 +283,13 @@ export default function SearchPage() {
   };
 
   const handleBackToChannels = () => {
-    history.back();
+    setSelectedChannelId(null);
+    setSelectedChannelName("");
+    setVideos([]);
+    setSelectedVideo(null);
+    setNextPageToken(null);
+    setPrevPageToken(null);
+    history.replaceState({ view: "search" }, "");
   };
 
   const handleModeChange = (mode: SearchMode) => {
@@ -401,23 +432,18 @@ export default function SearchPage() {
           <div className="mb-8">
             <button
               type="button"
-              onClick={() => history.back()}
+              onClick={handleClosePlayer}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               ← 動画一覧に戻る
             </button>
-            <div
-              className="relative w-full"
-              style={{ paddingBottom: "56.25%" }}
-            >
-              <iframe
-                className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
-                src={`https://www.youtube.com/embed/${selectedVideo}`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+            <VideoPlayerWithLimit
+              videoId={selectedVideo}
+              onLimitReached={() => {
+                handleClosePlayer();
+                setError("本日の視聴時間60分に達したため、再生を停止しました");
+              }}
+            />
           </div>
         ) : selectedChannelId && videos.length > 0 ? (
           <>

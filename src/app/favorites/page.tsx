@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
+import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
 import {
   type FavoriteChannel,
   useFavoriteChannels,
@@ -30,6 +32,7 @@ interface VideoItem {
 }
 
 type FavoriteTab = "videos" | "channels";
+type PlayerSource = "channelVideos" | "favoriteVideos" | null;
 
 export default function FavoritesPage() {
   const { favorites, isLoaded, removeFavorite } = useFavoriteChannels();
@@ -49,9 +52,11 @@ export default function FavoritesPage() {
     useState<FavoriteVideo | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FavoriteTab>("channels");
+  const [playerSource, setPlayerSource] = useState<PlayerSource>(null);
   const [error, setError] = useState("");
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
+  const { canStartPlayback } = useDailyWatchLimit();
 
   useEffect(() => {
     history.replaceState({ view: "channels" }, "");
@@ -62,6 +67,7 @@ export default function FavoritesPage() {
         setSelectedFavoriteVideo(null);
         setVideos([]);
         setSelectedVideo(null);
+        setPlayerSource(null);
         setError("");
         setNextPageToken(null);
         setPrevPageToken(null);
@@ -70,6 +76,7 @@ export default function FavoritesPage() {
         });
       } else if (state?.view === "videos") {
         setSelectedVideo(null);
+        setPlayerSource(null);
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -145,22 +152,74 @@ export default function FavoritesPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
+    if (!canStartPlayback()) {
+      setError("本日の視聴時間60分に達したため、再生できません");
+      return;
+    }
+
+    setError("");
     history.pushState({ view: "player" }, "");
     setSelectedFavoriteVideo(null);
     setSelectedVideo(videoId);
+    setPlayerSource("channelVideos");
   };
 
   const handleFavoriteVideoClick = (video: FavoriteVideo) => {
+    if (!canStartPlayback()) {
+      setError("本日の視聴時間60分に達したため、再生できません");
+      return;
+    }
+
+    setError("");
     scrollPositionRef.current = window.scrollY;
     history.pushState({ view: "player" }, "");
     setSelectedChannel(null);
     setVideos([]);
     setSelectedFavoriteVideo(video);
     setSelectedVideo(video.videoId);
+    setPlayerSource("favoriteVideos");
+  };
+
+  const handleClosePlayer = () => {
+    setSelectedVideo(null);
+    if (playerSource === "channelVideos") {
+      setSelectedFavoriteVideo(null);
+      setPlayerSource(null);
+      history.replaceState({ view: "videos" }, "");
+      return;
+    }
+
+    if (playerSource === "favoriteVideos") {
+      setSelectedFavoriteVideo(null);
+      setSelectedChannel(null);
+      setVideos([]);
+      setActiveTab("videos");
+      setPlayerSource(null);
+      history.replaceState({ view: "channels" }, "");
+      return;
+    }
+
+    if (selectedChannel) {
+      setPlayerSource(null);
+      history.replaceState({ view: "videos" }, "");
+      return;
+    }
+
+    setSelectedFavoriteVideo(null);
+    setPlayerSource(null);
+    history.replaceState({ view: "channels" }, "");
   };
 
   const handleBackToChannels = () => {
-    history.back();
+    setSelectedChannel(null);
+    setSelectedFavoriteVideo(null);
+    setVideos([]);
+    setSelectedVideo(null);
+    setPlayerSource(null);
+    setError("");
+    setNextPageToken(null);
+    setPrevPageToken(null);
+    history.replaceState({ view: "channels" }, "");
   };
 
   const handleNextPage = () => {
@@ -242,7 +301,7 @@ export default function FavoritesPage() {
           <div className="mb-8">
             <button
               type="button"
-              onClick={() => history.back()}
+              onClick={handleClosePlayer}
               className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               ←{" "}
@@ -250,18 +309,13 @@ export default function FavoritesPage() {
                 ? "お気に入り一覧に戻る"
                 : "動画一覧に戻る"}
             </button>
-            <div
-              className="relative w-full"
-              style={{ paddingBottom: "56.25%" }}
-            >
-              <iframe
-                className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
-                src={`https://www.youtube.com/embed/${selectedVideo}`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+            <VideoPlayerWithLimit
+              videoId={selectedVideo}
+              onLimitReached={() => {
+                handleClosePlayer();
+                setError("本日の視聴時間60分に達したため、再生を停止しました");
+              }}
+            />
           </div>
         ) : selectedChannel ? (
           <>
