@@ -244,7 +244,7 @@ export default function SearchPage() {
 
   const handleVideoClick = (videoId: string) => {
     if (!canStartPlayback()) {
-      setError("本日の視聴時間60分に達したため、再生できません");
+      setError("本日の視聴時間60分に達したため、再生できません!");
       return;
     }
 
