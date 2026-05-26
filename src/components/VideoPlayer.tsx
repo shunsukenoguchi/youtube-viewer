@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import { useDailyWatchLimit } from "./WatchLimitProvider";
 
-interface VideoPlayerWithLimitProps {
+interface VideoPlayerProps {
   videoId: string;
-  onLimitReached?: () => void;
 }
 
 declare global {
@@ -17,17 +15,11 @@ declare global {
 
 interface YouTubePlayer {
   destroy: () => void;
-  stopVideo: () => void;
-  getPlayerState: () => number;
 }
 
 interface YouTubePlayerOptions {
   videoId: string;
   playerVars?: Record<string, number | string>;
-  events?: {
-    onReady?: () => void;
-    onStateChange?: (event: { data: number }) => void;
-  };
 }
 
 interface YouTubeIframeApi {
@@ -35,14 +27,6 @@ interface YouTubeIframeApi {
     elementId: string,
     options: YouTubePlayerOptions,
   ) => YouTubePlayer;
-  PlayerState: {
-    UNSTARTED: number;
-    ENDED: number;
-    PLAYING: number;
-    PAUSED: number;
-    BUFFERING: number;
-    CUED: number;
-  };
 }
 
 let youtubeApiPromise: Promise<YouTubeIframeApi> | null = null;
@@ -92,16 +76,10 @@ function loadYouTubeIframeApi() {
   return youtubeApiPromise;
 }
 
-export function VideoPlayerWithLimit({
-  videoId,
-  onLimitReached,
-}: VideoPlayerWithLimitProps) {
-  const { isLoaded, isLocked, startCounting, stopCounting } =
-    useDailyWatchLimit();
+export function VideoPlayer({ videoId }: VideoPlayerProps) {
   const containerId = useId().replace(/:/g, "");
   const playerRef = useRef<YouTubePlayer | null>(null);
   const isMountedRef = useRef(true);
-  const hasNotifiedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -112,12 +90,7 @@ export function VideoPlayerWithLimit({
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || isLocked) {
-      return;
-    }
-
     let cancelled = false;
-    hasNotifiedRef.current = false;
 
     loadYouTubeIframeApi()
       .then((YT) => {
@@ -133,16 +106,6 @@ export function VideoPlayerWithLimit({
             origin: window.location.origin,
             rel: 0,
           },
-          events: {
-            onStateChange: (event) => {
-              if (event.data === YT.PlayerState.PLAYING) {
-                startCounting();
-                return;
-              }
-
-              stopCounting();
-            },
-          },
         });
       })
       .catch((error) => {
@@ -151,38 +114,10 @@ export function VideoPlayerWithLimit({
 
     return () => {
       cancelled = true;
-      stopCounting();
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [containerId, isLoaded, isLocked, startCounting, stopCounting, videoId]);
-
-  useEffect(() => {
-    if (!isLocked || hasNotifiedRef.current === true) {
-      return;
-    }
-
-    hasNotifiedRef.current = true;
-    stopCounting();
-    playerRef.current?.stopVideo();
-    onLimitReached?.();
-  }, [isLocked, onLimitReached, stopCounting]);
-
-  if (!isLoaded) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-lg bg-gray-800 text-gray-300 shadow-2xl">
-        読み込み中...
-      </div>
-    );
-  }
-
-  if (isLocked) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-lg border border-red-700 bg-red-950/40 px-6 text-center text-red-100 shadow-2xl">
-        本日の視聴時間60分に達しました。次の再生は明日0時以降に利用できます。
-      </div>
-    );
-  }
+  }, [containerId, videoId]);
 
   return (
     <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>

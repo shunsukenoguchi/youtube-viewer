@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
-import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
 import { useFavoriteVideos } from "@/hooks/useFavoriteVideos";
 
@@ -61,7 +60,6 @@ export default function SearchPage() {
   const { isFavorite, toggleFavorite } = useFavoriteChannels();
   const { isFavorite: isVideoFavorite, toggleFavorite: toggleVideoFavorite } =
     useFavoriteVideos();
-  const { canStartPlayback } = useDailyWatchLimit();
 
   useEffect(() => {
     history.replaceState({ view: "search" }, "");
@@ -243,11 +241,6 @@ export default function SearchPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
-    if (!canStartPlayback()) {
-      setError("本日の視聴時間60分に達したため、再生できません!");
-      return;
-    }
-
     setError("");
     history.pushState({ view: "player" }, "");
     setSelectedVideo(videoId);
@@ -437,13 +430,7 @@ export default function SearchPage() {
             >
               ← 動画一覧に戻る
             </button>
-            <VideoPlayerWithLimit
-              videoId={selectedVideo}
-              onLimitReached={() => {
-                handleClosePlayer();
-                setError("本日の視聴時間60分に達したため、再生を停止しました");
-              }}
-            />
+            <VideoPlayer videoId={selectedVideo} />
           </div>
         ) : selectedChannelId && videos.length > 0 ? (
           <>

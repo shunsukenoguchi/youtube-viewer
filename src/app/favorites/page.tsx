@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
-import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import {
   type FavoriteChannel,
   useFavoriteChannels,
@@ -56,7 +55,6 @@ export default function FavoritesPage() {
   const [error, setError] = useState("");
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [prevPageToken, setPrevPageToken] = useState<string | null>(null);
-  const { canStartPlayback } = useDailyWatchLimit();
 
   useEffect(() => {
     history.replaceState({ view: "channels" }, "");
@@ -152,11 +150,6 @@ export default function FavoritesPage() {
   };
 
   const handleVideoClick = (videoId: string) => {
-    if (!canStartPlayback()) {
-      setError("本日の視聴時間60分に達したため、再生できません");
-      return;
-    }
-
     setError("");
     history.pushState({ view: "player" }, "");
     setSelectedFavoriteVideo(null);
@@ -165,11 +158,6 @@ export default function FavoritesPage() {
   };
 
   const handleFavoriteVideoClick = (video: FavoriteVideo) => {
-    if (!canStartPlayback()) {
-      setError("本日の視聴時間60分に達したため、再生できません");
-      return;
-    }
-
     setError("");
     scrollPositionRef.current = window.scrollY;
     history.pushState({ view: "player" }, "");
@@ -309,13 +297,7 @@ export default function FavoritesPage() {
                 ? "お気に入り一覧に戻る"
                 : "動画一覧に戻る"}
             </button>
-            <VideoPlayerWithLimit
-              videoId={selectedVideo}
-              onLimitReached={() => {
-                handleClosePlayer();
-                setError("本日の視聴時間60分に達したため、再生を停止しました");
-              }}
-            />
+            <VideoPlayer videoId={selectedVideo} />
           </div>
         ) : selectedChannel ? (
           <>

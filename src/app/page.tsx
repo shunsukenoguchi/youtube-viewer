@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { VideoPlayerWithLimit } from "@/components/watch-limit/VideoPlayerWithLimit";
-import { useDailyWatchLimit } from "@/components/watch-limit/WatchLimitProvider";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const [error, setError] = useState("");
-  const { canStartPlayback } = useDailyWatchLimit();
 
   const extractVideoId = (youtubeUrl: string): string | null => {
     // YouTube URLからビデオIDを抽出
@@ -32,10 +30,6 @@ export default function Home() {
     e.preventDefault();
     const id = extractVideoId(url);
     if (id) {
-      if (!canStartPlayback()) {
-        setError("本日の視聴時間60分に達したため、再生できません");
-        return;
-      }
       setError("");
       setVideoId(id);
     } else {
@@ -103,15 +97,7 @@ export default function Home() {
           </div>
         )}
 
-        {videoId && (
-          <VideoPlayerWithLimit
-            videoId={videoId}
-            onLimitReached={() => {
-              setVideoId("");
-              setError("本日の視聴時間60分に達したため、再生を停止しました");
-            }}
-          />
-        )}
+        {videoId && <VideoPlayer videoId={videoId} />}
 
         {!videoId && (
           <div className="text-center text-gray-400 mt-16">
