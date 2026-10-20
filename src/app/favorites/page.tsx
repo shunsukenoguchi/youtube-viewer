@@ -274,7 +274,7 @@ export default function FavoritesPage() {
               href="/"
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              URL入力へ
+              ホームへ
             </Link>
           </div>
         </div>
