@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { useFavoriteChannels } from "@/hooks/useFavoriteChannels";
 import { useFavoriteVideos } from "@/hooks/useFavoriteVideos";
+import { extractYouTubeVideoId, looksLikeUrl } from "@/lib/youtube";
 
 type SearchMode = "channel" | "video";
 
@@ -86,59 +87,94 @@ export default function SearchPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const searchVideos = async (query: string, pageToken?: string | null) => {
-    setLoading(true);
-    setError("");
+  const searchVideos = useCallback(
+    async (query: string, pageToken?: string | null) => {
+      setLoading(true);
+      setError("");
 
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+      try {
+        const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
-      if (!apiKey) {
-        setError(
-          "YouTube API Keyが設定されていません。.env.localファイルにNEXT_PUBLIC_YOUTUBE_API_KEYを設定してください。",
+        if (!apiKey) {
+          setError(
+            "YouTube API Keyが設定されていません。.env.localファイルにNEXT_PUBLIC_YOUTUBE_API_KEYを設定してください。",
+          );
+          setLoading(false);
+          return;
+        }
+
+        const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+            query,
+          )}&type=video&maxResults=20&order=date${pageTokenParam}&key=${apiKey}`,
         );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          const errorMessage =
+            errorData?.error?.message || `HTTP ${response.status}`;
+          throw new Error(`検索に失敗しました: ${errorMessage}`);
+        }
+
+        const data = await response.json();
+        setVideos(data.items || []);
+        setNextPageToken(data.nextPageToken || null);
+        setPrevPageToken(data.prevPageToken || null);
+
+        if (data.items?.length === 0) {
+          setError("動画が見つかりませんでした");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "エラーが発生しました");
+      } finally {
         setLoading(false);
-        return;
       }
+    },
+    [],
+  );
 
-      const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("q")?.trim();
 
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-          query,
-        )}&type=video&maxResults=20&order=date${pageTokenParam}&key=${apiKey}`,
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorMessage =
-          errorData?.error?.message || `HTTP ${response.status}`;
-        throw new Error(`検索に失敗しました: ${errorMessage}`);
-      }
-
-      const data = await response.json();
-      setVideos(data.items || []);
-      setNextPageToken(data.nextPageToken || null);
-      setPrevPageToken(data.prevPageToken || null);
-
-      if (data.items?.length === 0) {
-        setError("動画が見つかりませんでした");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
+    if (!query) {
+      return;
     }
-  };
+
+    setSearchMode("video");
+    setSearchQuery(query);
+    history.replaceState({ view: "videoSearch" }, "");
+    void searchVideos(query);
+  }, [searchVideos]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) {
+    const query = searchQuery.trim();
+
+    if (!query) {
       setError(
         searchMode === "channel"
-          ? "チャンネル名を入力してください"
-          : "動画タイトルを入力してください",
+          ? "YouTube URLまたはチャンネル名を入力してください"
+          : "YouTube URLまたは動画タイトルを入力してください",
       );
+      return;
+    }
+
+    const videoId = extractYouTubeVideoId(query);
+    if (videoId) {
+      setChannels([]);
+      setVideos([]);
+      setSelectedChannelId(null);
+      setError("");
+      history.pushState({ view: "player" }, "");
+      setSelectedVideo(videoId);
+      return;
+    }
+
+    if (looksLikeUrl(query)) {
+      setError("有効なYouTube URLを入力してください");
       return;
     }
 
@@ -150,7 +186,7 @@ export default function SearchPage() {
 
     if (searchMode === "video") {
       history.replaceState({ view: "videoSearch" }, "");
-      await searchVideos(searchQuery);
+      await searchVideos(query);
       return;
     }
 
@@ -173,7 +209,7 @@ export default function SearchPage() {
 
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-          searchQuery,
+          query,
         )}&type=channel&maxResults=10&key=${apiKey}`,
       );
 
@@ -352,7 +388,7 @@ export default function SearchPage() {
               href="/"
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              URL入力へ
+              ホームへ
             </Link>
           </div>
         </div>
@@ -391,9 +427,10 @@ export default function SearchPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 searchMode === "channel"
-                  ? "チャンネル名を入力"
-                  : "動画タイトルを入力"
+                  ? "YouTube URLまたはチャンネル名を入力"
+                  : "YouTube URLまたは動画タイトルを入力"
               }
+              aria-label="YouTube URLまたは検索キーワード"
               className="flex-1 px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
             />
             <button
@@ -401,7 +438,7 @@ export default function SearchPage() {
               disabled={loading}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
-              {loading ? "検索中..." : "検索"}
+              {loading ? "検索中..." : "表示・検索"}
             </button>
             {(channels.length > 0 || videos.length > 0 || selectedVideo) && (
               <button
